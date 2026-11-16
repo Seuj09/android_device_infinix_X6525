@@ -1,0 +1,25 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+prebuilt_avb {
+    name: "x6525_q-gsi.avbpubkey",
+    src: "q-gsi.avbpubkey",
+    filename: "q-gsi.avbpubkey",
+    vendor_ramdisk: true,
+}
+
+prebuilt_avb {
+    name: "x6525_r-gsi.avbpubkey",
+    src: "r-gsi.avbpubkey",
+    filename: "r-gsi.avbpubkey",
+    vendor_ramdisk: true,
+}
+
+prebuilt_avb {
+    name: "x6525_s-gsi.avbpubkey",
+    src: "s-gsi.avbpubkey",
+    filename: "s-gsi.avbpubkey",
+    vendor_ramdisk: true,
+}

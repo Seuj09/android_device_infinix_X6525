@@ -12,6 +12,7 @@ PRODUCT_VIRTUAL_AB_COMPRESSION := true
 
 # API level
 PRODUCT_SHIPPING_API_LEVEL := 33
+PRODUCT_EXTRA_VNDK_VERSIONS := 33
 
 # Dynamic partitions
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
@@ -78,6 +79,8 @@ PRODUCT_PACKAGES += \
 #     PRODUCT_PACKAGES += \
 #         android.hardware.health@2.1-impl \
 #         android.hardware.health@2.1-service
+PRODUCT_PACKAGES += \
+    android.hardware.health-service.example_recovery
 
 # First- and second-stage fstab. Named after ro.hardware, which the bootloader
 # reports as "X6525" on this device. Install to $(TARGET_COPY_OUT_VENDOR)/etc
@@ -96,12 +99,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/etc/ueventd.X6525.rc:$(TARGET_COPY_OUT_RECOVERY)/root/ueventd.X6525.rc \
     $(LOCAL_PATH)/rootdir/etc/ueventd.module.rc:$(TARGET_COPY_OUT_RECOVERY)/root/ueventd.module.rc \
     $(LOCAL_PATH)/rootdir/bin/load_modules.sh:$(TARGET_COPY_OUT_RECOVERY)/root/system/bin/load_modules.sh \
-    $(LOCAL_PATH)/prebuilts/avb/q-gsi.avbpubkey:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/avb/q-gsi.avbpubkey \
-    $(LOCAL_PATH)/prebuilts/avb/r-gsi.avbpubkey:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/avb/r-gsi.avbpubkey \
-    $(LOCAL_PATH)/prebuilts/avb/s-gsi.avbpubkey:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/avb/s-gsi.avbpubkey \
-    $(LOCAL_PATH)/prebuilts/avb/q-gsi.avbpubkey:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/first_stage_ramdisk/avb/q-gsi.avbpubkey \
-    $(LOCAL_PATH)/prebuilts/avb/r-gsi.avbpubkey:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/first_stage_ramdisk/avb/r-gsi.avbpubkey \
-    $(LOCAL_PATH)/prebuilts/avb/s-gsi.avbpubkey:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/first_stage_ramdisk/avb/s-gsi.avbpubkey \
     $(LOCAL_PATH)/prebuilts/avb/q-gsi.avbpubkey:$(TARGET_COPY_OUT_RECOVERY)/root/avb/q-gsi.avbpubkey \
     $(LOCAL_PATH)/prebuilts/avb/r-gsi.avbpubkey:$(TARGET_COPY_OUT_RECOVERY)/root/avb/r-gsi.avbpubkey \
     $(LOCAL_PATH)/prebuilts/avb/s-gsi.avbpubkey:$(TARGET_COPY_OUT_RECOVERY)/root/avb/s-gsi.avbpubkey \
@@ -132,6 +129,12 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilts/firmware/focaltech_ts_fw.bin:$(TARGET_COPY_OUT_RECOVERY)/root/vendor/firmware/focaltech_ts_fw.bin \
     $(LOCAL_PATH)/prebuilts/firmware/novatek_ts_fw.bin:$(TARGET_COPY_OUT_RECOVERY)/root/vendor/firmware/novatek_ts_fw.bin
 
+# GSI AVB keys in vendor_ramdisk (/avb)
+PRODUCT_PACKAGES += \
+    x6525_q-gsi.avbpubkey \
+    x6525_r-gsi.avbpubkey \
+    x6525_s-gsi.avbpubkey
+
 # Overlays
 DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
 
@@ -144,8 +147,9 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     android.hardware.cas@1.2-service-lazy \
     android.hardware.hardware_keystore.xml \
-    android.hardware.wifi@1.0-service-lazy \
+    android.hardware.wifi-service-lazy \
     libwifi-hal \
+    libwpa_client \
     vndservice \
     vndservicemanager
 

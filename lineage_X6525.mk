@@ -18,7 +18,13 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 # Inherit from the Infinix X6525 device tree.
 $(call inherit-product, device/infinix/X6525/device.mk)
 
-# Inherit some common Lineage stuff.
+# Lunaris-AOSP configuration
+WITH_GMS := true
+WITH_PIXEL_LAUNCHER := false
+TARGET_BOOT_ANIMATION_RES := 720
+TARGET_FACE_UNLOCK_SUPPORTED := false
+
+# Inherit some common Lineage/Lunaris stuff.
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
 
 PRODUCT_DEVICE := X6525
@@ -28,13 +34,3 @@ PRODUCT_MODEL := Infinix X6525
 PRODUCT_MANUFACTURER := Infinix
 
 PRODUCT_GMS_CLIENTID_BASE := android-transsion
-
-# Keep the stock build fingerprint so Play/device certification sees the
-# device it expects. Replace both values with the ones your dump reports:
-#
-#     python3 tools/collect-props.py <dump> | grep -E 'ro.build.(fingerprint|description)'
-#
-# The values below are from the port ROM used as a reference.
-PRODUCT_BUILD_PROP_OVERRIDES += \
-    PRIVATE_BUILD_DESC="X6525-user 13 TP1A.220624.014 250909V212 release-keys" \
-    BUILD_FINGERPRINT="Infinix/X6525-OPPJ/Infinix-X6525:13/TP1A.220624.014/250909V212:user/release-keys"

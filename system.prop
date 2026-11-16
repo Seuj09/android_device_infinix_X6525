@@ -19,3 +19,4 @@ ro.config.low_ram=false
 
 # Misc
 ro.dalvik.vm.native.bridge=0
+ro.lunaris.maintainer=Seuj09

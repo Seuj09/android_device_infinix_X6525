@@ -30,10 +30,8 @@ TARGET_BOOTLOADER_BOARD_NAME := ums9230
 TARGET_NO_BOOTLOADER := true
 TARGET_OTA_ASSERT_DEVICE := X6525,Infinix-X6525
 
-# Treble / VNDK / API levels
-BOARD_VNDK_VERSION := current
+# Treble / API levels
 BOARD_SHIPPING_API_LEVEL := 33
-BOARD_API_LEVEL := 33
 VENDOR_SECURITY_PATCH := 2024-05-05
 
 # ----------------------------------------------------------------------------

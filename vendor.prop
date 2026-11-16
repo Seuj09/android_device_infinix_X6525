@@ -262,4 +262,5 @@ ro.incremental.enable=true
 vendor.prop.turbo.cloud=0
 persist.sys.zram_enabled=1
 persist.sys.usb.config=adb
+ro.vndk.version=33
 sys.usb.controller=musb-hdrc.1.auto
