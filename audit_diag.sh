@@ -91,3 +91,31 @@ timeout 5 service list 2>&1 | grep -iE "vibrator|light|power|thermal|drm|media\.
 echo "--- lshal (filtered) ---"
 timeout 5 lshal --types=h,b 2>&1 | grep -iE "gnss|thermal|vibrator|light|power|drm|media\.c2|omx|broadcastradio|bluetooth|audio|camera|sensors"
 '
+
+echo "=== 7. FINGERPRINT HARDWARE ==="
+shroot '
+echo "--- fp device nodes ---"
+ls -la /dev/silead_fp /dev/silead_stub /dev/goodix_fp /dev/fpc* /dev/trusty-ipc-dev0 2>&1
+echo "--- fp modules ---"
+lsmod 2>&1 | grep -iE "silead|goodix|fpc|fpsensor"
+echo "--- fp data dirs ---"
+ls -la /data/vendor/silead /data/vendor/goodix /data/vendor/fpc 2>&1
+echo "--- fp kernel probe log ---"
+timeout 5 dmesg 2>&1 | grep -iE "silead|goodix|fpc|fpsensor|fingerprint" | tail -n 30
+'
+shrun 'getprop | grep -iE "fps|fingerprint|biometric" | sort'
+shrun 'echo "fps_hal=$(getprop init.svc.vendor.fps_hal) fpexts_hal=$(getprop init.svc.fpexts_hal) fingerprintmmi=$(getprop init.svc.vendor.fingerprintmmi-default)"'
+shrun 'timeout 5 dumpsys fingerprint 2>&1 | head -n 40'
+shrun 'timeout 5 logcat -d -v brief | grep -iE "silead|goodix|fpc|fingerprint|fps_hal|biometric" | tail -n 80'
+
+echo "=== 8. GNSS HARDWARE ==="
+shroot '
+echo "--- gnss device nodes ---"
+ls -la /dev/slog_gnss /dev/wcn_gnss_dump /dev/gnss* 2>&1
+echo "--- gnss data dirs ---"
+ls -la /data/vendor/gnss /data/vendor/gps /data/vendor/location 2>&1
+'
+shrun 'echo "gnss_sprd=$(getprop init.svc.vendor.gnss_service_sprd) gpsd=$(getprop init.svc.gpsd)"'
+shrun 'getprop | grep -iE "gnss|gps" | sort'
+shrun 'timeout 5 lshal --types=h,b 2>&1 | grep -iE "gnss|location"'
+shrun 'timeout 5 logcat -d -v brief | grep -iE "gnss|gpsd|GnssHal|GnssLocationProvider|location" | tail -n 80'
