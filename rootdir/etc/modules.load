@@ -12,7 +12,6 @@ sc2730-regulator.ko
 ump518-regulator.ko
 sprd_soc_id.ko
 rpmb.ko
-ufs-sprd_qogirl6.ko
 sprd_hwspinlock.ko
 nvmem-sc27xx-efuse.ko
 nvmem_sprd_cache_efuse.ko

@@ -123,15 +123,15 @@ BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 104857600
 # Verified against `lpdump` from the device (`super` = 5242880000 bytes,
 # `group_unisoc_a` max = 5240782848 bytes).
 BOARD_SUPER_PARTITION_SIZE := 5242880000
-BOARD_SUPER_PARTITION_GROUPS := infinix_dynamic_partitions
-BOARD_INFINIX_DYNAMIC_PARTITIONS_PARTITION_LIST := \
+BOARD_SUPER_PARTITION_GROUPS := group_unisoc
+BOARD_GROUP_UNISOC_PARTITION_LIST := \
     system \
     system_ext \
     vendor \
     product \
     odm \
     vendor_dlkm
-BOARD_INFINIX_DYNAMIC_PARTITIONS_SIZE := 5240782848
+BOARD_GROUP_UNISOC_SIZE := 5240782848
 
 # ----------------------------------------------------------------------------
 # Filesystems

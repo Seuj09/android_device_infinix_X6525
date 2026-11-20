@@ -11,4 +11,9 @@
 
     <!-- Default Notification Listener access packages -->
     <string name="config_defaultListenerAccessPackages" translatable="false">com.android.launcher3:com.google.android.projection.gearhead</string>
+
+    <!-- Disable AOD wallpaper, burn-in protection, and pickup doze on LCD panel -->
+    <bool name="config_dozeSupportsAodWallpaper">false</bool>
+    <bool name="config_enableBurnInProtection">false</bool>
+    <bool name="config_dozePulsePickup">false</bool>
 </resources>

@@ -37,7 +37,7 @@ ro.audio.offload_wakelock=false
 ro.af.client_heap_size_kbyte=2049
 
 # ---- Bluetooth -------------------------------------------------------------
-ro.bluetooth.a2dp_offload.supported=true
+ro.bluetooth.a2dp_offload.supported=false
 persist.bluetooth.a2dp_offload.aidl_flag=aidl
 persist.bluetooth.a2dp_offload.cap=sbc
 persist.bluetooth.a2dp_offload.switch=true

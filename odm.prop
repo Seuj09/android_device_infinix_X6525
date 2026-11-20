@@ -16,7 +16,7 @@ ro.recovery.ui.dropscreen=1
 ro.recovery.ui.margin_height=45
 
 # Bluetooth / Wi-Fi / GNSS (WCN)
-persist.bluetooth.a2dp_offload.disabled=false
+persist.bluetooth.a2dp_offload.disabled=true
 persist.sys.wifi.reset.devpath=devices/platform/87000000.cpwcn-btwf/87000000.cpwcn-btwf:sprd-wlan
 ro.vendor.wcn.hardware.product=marlin3_internal
 ro.vendor.gnsschip=marlin3lite-Integ
