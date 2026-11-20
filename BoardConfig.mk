@@ -136,7 +136,6 @@ BOARD_INFINIX_DYNAMIC_PARTITIONS_SIZE := 5240782848
 # ----------------------------------------------------------------------------
 # Filesystems
 # ----------------------------------------------------------------------------
-TARGET_USES_EROFS := true
 BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE := erofs
 BOARD_SYSTEM_EXTIMAGE_FILE_SYSTEM_TYPE := erofs
 BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE := erofs
@@ -221,7 +220,6 @@ DEVICE_MANIFEST_FILE += \
     vendor/infinix/X6525/proprietary/vendor/etc/vintf/manifest/android.hardware.sensors-multihal.xml \
     vendor/infinix/X6525/proprietary/vendor/etc/vintf/manifest/android.hardware.usb-service.example.xml \
     vendor/infinix/X6525/proprietary/vendor/etc/vintf/manifest/android.hardware.wifi.hostapd.xml \
-    vendor/infinix/X6525/proprietary/vendor/etc/vintf/manifest/android.hardware.wifi.supplicant.xml \
     vendor/infinix/X6525/proprietary/vendor/etc/vintf/manifest/bluetooth_audio.xml \
     vendor/infinix/X6525/proprietary/vendor/etc/vintf/manifest/face-default.xml \
     vendor/infinix/X6525/proprietary/vendor/etc/vintf/manifest/power.stats-default.xml

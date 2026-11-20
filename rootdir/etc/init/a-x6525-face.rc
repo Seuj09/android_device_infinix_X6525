@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: The LineageOS Project
+# SPDX-License-Identifier: Apache-2.0
+#
+# Face HAL start rules for the stock Unisoc/Transsion face service.
+#
+# The binary and the service definition live in the vendor blobs, but the
+# init.rc file is not installed by the blob module: AOSP also installs
+# /vendor/etc/init/face-default.rc (from hardware/interfaces/biometrics/face)
+# and two init.rc files cannot be installed to the same path.  The AOSP copy
+# defines the same "vendor.face-default" service name, but points at the AOSP
+# binary which is not present in this image.  This file is named so that it is
+# parsed before face-default.rc, so "start vendor.face-default" resolves to the
+# stock service below.  Both definitions are disabled, so only this one runs.
+
+service vendor.face-default /vendor/bin/hw/vendor.sprd.hardware.biometrics.face-service
+    class hal
+    user system
+    group system media
+    disabled
+
+on post-fs-data
+    mkdir /data/vendor/faceid 0744 system system
+
+on property:ro.vendor.faceid.support=true
+    start vendor.face-default

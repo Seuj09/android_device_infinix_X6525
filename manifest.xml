@@ -225,7 +225,4 @@
         </interface>
         <fqname>@1.0::ITranLogConfig/default</fqname>
     </hal>
-    <sepolicy>
-        <version>33.0</version>
-    </sepolicy>
 </manifest>

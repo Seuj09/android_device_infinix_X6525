@@ -17,6 +17,13 @@ dalvik.vm.heapsize=256m
 # false unless you are porting the Go configuration properly.
 ro.config.low_ram=false
 
+# This kernel (Linux 5.4) has no per-app memcg accounting; stock disables it.
+ro.config.per_app_memcg=false
+
+# Stock enables background blur; the T606 GPU handles it on Android 13, keep
+# parity. Remove/0 this if SurfaceFlinger blur costs too much on Android 16.
+ro.surface_flinger.supports_background_blur=1
+
 # Misc
 ro.dalvik.vm.native.bridge=0
 ro.lunaris.maintainer=Seuj09
