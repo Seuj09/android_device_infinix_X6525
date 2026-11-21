@@ -19,7 +19,7 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 $(call inherit-product, device/infinix/X6525/device.mk)
 
 # Lunaris-AOSP configuration
-WITH_GMS := true
+WITH_GMS ?= true
 WITH_PIXEL_LAUNCHER := false
 TARGET_BOOT_ANIMATION_RES := 720
 TARGET_FACE_UNLOCK_SUPPORTED := false
