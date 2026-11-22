@@ -10,7 +10,7 @@ mount -t f2fs /dev/block/by-name/metadata $M 2>/dev/null || mount -t ext4 /dev/b
 mount -t f2fs /dev/block/by-name/cache $C 2>/dev/null || mount -t ext4 /dev/block/by-name/cache $C
 D=$M/boot_dmesg.txt
 {
-echo "===== mounts"; mount | grep -E " /(cache|metadata|tmp/m|tmp/c) "; ls -la / | grep -E "cache|metadata"
+echo "===== by-name"; ls -la /dev/block/by-name/metadata /dev/block/by-name/cache
 echo "===== boot_tick"; cat $M/boot_tick.txt
 echo "===== ls metadata / cache"; ls -la $M $C
 echo "===== filtered dmesg"
