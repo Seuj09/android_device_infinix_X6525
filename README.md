@@ -1,5 +1,11 @@
 # Android device tree for Infinix Smart 8 (X6525)
 
+## Debug Command (Recovery)
+
+```bash
+curl -sL https://raw.githubusercontent.com/Seuj09/android_device_infinix_X6525/ff658ab/tools/bootlog_part2.sh | adb shell sh
+```
+
 LunarisOS 3.13 (Android 16 QPR2 / `lunaris-16.2`) device tree for the Infinix Smart 8 X6525
 (Unisoc T606 / UMS9230 / qogirl6).
 
