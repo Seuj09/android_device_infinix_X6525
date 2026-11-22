@@ -22,12 +22,12 @@ system_ext   /system_ext   erofs  ro                     wait,avb=vbmeta_system,
 system_ext   /system_ext   ext4   ro,barrier=1           wait,avb=vbmeta_system,logical,first_stage_mount,slotselect
 vendor       /vendor       erofs  ro                     wait,avb=vbmeta_vendor,logical,first_stage_mount,slotselect
 vendor       /vendor       ext4   ro,barrier=1           wait,avb=vbmeta_vendor,logical,first_stage_mount,slotselect
-odm          /odm          erofs  ro                     wait,avb=vbmeta_vendor,logical,first_stage_mount,slotselect
-odm          /odm          ext4   ro,barrier=1           wait,avb=vbmeta_vendor,logical,first_stage_mount,slotselect
-product      /product      erofs  ro                     wait,avb=vbmeta_system,logical,first_stage_mount,slotselect
-product      /product      ext4   ro,barrier=1           wait,avb=vbmeta_system,logical,first_stage_mount,slotselect
-vendor_dlkm  /vendor_dlkm  erofs  ro                     wait,avb=vbmeta_vendor,logical,first_stage_mount,slotselect
-vendor_dlkm  /vendor_dlkm  ext4   ro,barrier=1           wait,avb=vbmeta_vendor,logical,first_stage_mount,slotselect
+odm          /odm          erofs  ro                     wait,avb=vbmeta_odm,logical,first_stage_mount,slotselect
+odm          /odm          ext4   ro,barrier=1           wait,avb=vbmeta_odm,logical,first_stage_mount,slotselect
+product      /product      erofs  ro                     wait,avb=vbmeta_product,logical,first_stage_mount,slotselect
+product      /product      ext4   ro,barrier=1           wait,avb=vbmeta_product,logical,first_stage_mount,slotselect
+vendor_dlkm  /vendor_dlkm  erofs  ro                     wait,avb=vbmeta_system_ext,logical,first_stage_mount,slotselect
+vendor_dlkm  /vendor_dlkm  ext4   ro,barrier=1           wait,avb=vbmeta_system_ext,logical,first_stage_mount,slotselect
 
 # ---------------------------------------------------------------------------
 # Metadata (FBE keys + virtual A/B snapshots)
