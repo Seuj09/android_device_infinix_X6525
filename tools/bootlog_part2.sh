@@ -1,18 +1,22 @@
 #!/system/bin/sh
-# Second-pass, focused extraction. Writes /tmp/bootlog_part2.txt
-OUT=/tmp/bootlog_part2.txt
+# Prints a compact, de-duplicated summary of the debug boot logs.
 M=/tmp/m; mkdir -p $M
 mount -t f2fs /dev/block/by-name/metadata $M 2>/dev/null
 D=$M/boot_dmesg.txt; L=$M/boot_logcat.txt
-{
-echo "===== init actions / exec / slow or failed commands"
-grep -nE "init: (processing action|SVC_EXEC|Command .*(failed|took [0-9]{4,}ms)|.*waiting took|Wait|wait_for|.*first stage|Setup|Init|init second stage|.*Switching root|.*Reboot|.*reboot)" $D | head -n 150
-echo "===== vold / apexd / mount_all"
-grep -nE "vold|apexd|mount_all|fs_mgr|Cannot start an updatable" $D | head -n 60
-echo "===== logcat: why services exit (first 120 errors)"
-grep -E "CANNOT LINK|linker|F libc|F DEBUG|Abort message| E vold| F vold|vndservicemanager|hwcomposer|android.hardware.health" $L | grep -vE "avc:" | head -n 120
-echo "===== logcat: vold"
-grep -iE " vold|vdc" $L | head -n 40
-} > "$OUT" 2>&1
+# strip logcat "date time pid tid" prefix so identical messages dedupe
+strip() { sed -E 's/^[0-9-]+ [0-9:.]+ +[0-9]+ +[0-9]+ //'; }
+
+echo "## STAGES"
+grep -E "init: processing action \((early-init|init|late-init|early-fs|fs|post-fs|late-fs|post-fs-data|zygote-start|early-boot|boot)\)" $D \
+ | sed -E 's/^\[ *([0-9.]+)\].*action \(([^)]*)\).*/\1 \2/'
+echo "## SLOW/FAILED"
+grep -E "init: Command '(mount_all|exec|wait|start vold|exec_start)[^']*'.*(failed|took [0-9]{4,}ms)|waiting took [0-9]{2,}" $D | sed -E 's/^\[ *([0-9.]+)\] init: /\1 /' | head -n 15
+echo "## VOLD"
+grep -E "service 'vold'|Service 'vold'|vold-failed" $D | sed -E 's/^\[ *([0-9.]+)\] init: /\1 /' | head -n 8
+echo "## LINK ERRORS"
+grep -E "CANNOT LINK|library .* not found" $L | strip | sort -u | head -n 25
+echo "## ABORTS"
+grep -E "Abort message|F libc +: Fatal" $L | strip | sort -u | head -n 15
+echo "## VOLD LOGCAT"
+grep -E " (E|F) vold" $L | strip | sort -u | head -n 10
 umount $M 2>/dev/null
-echo "Report written to $OUT ($(wc -c < $OUT) bytes)"
