@@ -4,14 +4,14 @@ Post-process a built LunarisOS/Android 16 vendor.img for Infinix X6525 (VNDK v33
 1. Removes Android 16 VNDK libraries from /vendor/lib{,64}/ that shadow
    /apex/com.android.vndk.v33/lib{,64}/ (fixing libapexsupport.so and libbase ABI breaks).
 2. Restores stock VNDK v33 binaries and libraries from vendor/infinix/X6525/proprietary/vendor/.
-3. Ensures libprotobuf-cpp-{lite,full}-3.9.1.so and libkeystore*-wifi-hidl.so are present.
-4. Optionally bundles ufs-sprd_qogirl6.ko + insmod hook in init.insmod.sh for older vendor_boot images.
-5. Repacks as LZ4 EROFS preserving SELinux file_contexts and verifies with fsck.erofs.
-
-Usage:
-    python3 tools/fix_vendor_vndk33.py <input_vendor.img> <output_vendor.img> [android_top]
+3. Installs missing stock protobuf-3.9.1, wifi keystore, and wifi@1.0..1.6 HIDL libraries.
+4. Replaces Android 16 wifi/supplicant manifests & rc with stock VNDK v33 wifi@1.0 + supplicant v1.
+5. Syncs init.X6525.rc (${ro.bootmode:-normal}, watchdogd disabled, bootlog_meta clean) and
+   bundles ufs-sprd_qogirl6.ko in init.insmod.sh (preserving full stock module load order).
+6. Merges platform /vendor file_contexts + vendor_file_contexts so every inode gets proper SELinux xattrs.
 """
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -28,6 +28,7 @@ def main():
     prop = os.path.join(top, "vendor/infinix/X6525/proprietary/vendor")
     vndk_root = os.path.join(top, "prebuilts/vndk/v33/arm64")
     ufs_ko = os.path.join(top, "device/infinix/X6525/prebuilts/modules/ufs-sprd_qogirl6.ko")
+    plat_fc = os.path.join(top, "system/sepolicy/private/file_contexts")
 
     vndk64, vndk32 = set(), set()
     for sub in ("vndk-core", "vndk-sp"):
@@ -41,6 +42,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="x6525_vndk33_") as tmp:
         root = os.path.join(tmp, "v")
         subprocess.run(["fsck.erofs", f"--extract={root}", in_img], check=True)
+        os.chmod(root, 0o755)
 
         removed = 0
         for arch, vndk in (("lib64", vndk64), ("lib", vndk32)):
@@ -95,7 +97,7 @@ def main():
                 shutil.copy2(src, dst)
                 os.chmod(dst, 0o644)
 
-        # Replace Android 16 AIDL wifi HAL with stock VNDK v33 HIDL 1.6 wifi HAL
+        # Replace Android 16 AIDL wifi HAL + v4 supplicant manifest with stock VNDK v33 HIDL 1.6 wifi + v1 supplicant
         for stale in (
             "bin/hw/android.hardware.wifi-service-lazy",
             "etc/init/android.hardware.wifi-service-lazy.rc",
@@ -109,41 +111,33 @@ def main():
             ("bin/hw/android.hardware.wifi@1.0-service-lazy", 0o755),
             ("etc/init/android.hardware.wifi@1.0-service-lazy.rc", 0o644),
             ("etc/vintf/manifest/android.hardware.wifi@1.0-service.xml", 0o644),
+            ("etc/init/android.hardware.wifi.supplicant-service.rc", 0o644),
+            ("etc/vintf/manifest/android.hardware.wifi.supplicant.xml", 0o644),
         ):
             src, dst = os.path.join(prop, rel), os.path.join(root, rel)
             if os.path.isfile(src):
                 shutil.copy2(src, dst)
                 os.chmod(dst, mode)
 
-        # Keep init.X6525.rc (including bootlog_meta + watchdogd fix) in sync
+        # Sync init.X6525.rc (${ro.bootmode:-normal}, watchdogd disabled, bootlog_meta clean)
         rc_src = os.path.join(prop, "etc/init/hw/init.X6525.rc")
         if os.path.isfile(rc_src):
             shutil.copy2(rc_src, os.path.join(root, "etc/init/hw/init.X6525.rc"))
             os.chmod(os.path.join(root, "etc/init/hw/init.X6525.rc"), 0o644)
 
-        # Bundle ufs-sprd_qogirl6.ko fallback and unblock early-boot right after
-        # lines 1..33 of modules.load (in exact stock order: power domains, ION,
-        # IOMMU, tran_hwinfo, sprd-drm, sprd-gsp, apsys-dvfs, mali_kbase) so
-        # bootanim starts immediately while lines 34..end finish in stock order.
+        # Bundle ufs-sprd_qogirl6.ko in exact stock load order (proven in 30324dac), drop verbose -s flag
         if os.path.isfile(ufs_ko):
             shutil.copy2(ufs_ko, os.path.join(root, "lib/ufs-sprd_qogirl6.ko"))
             os.chmod(os.path.join(root, "lib/ufs-sprd_qogirl6.ko"), 0o644)
             insmod_sh = os.path.join(root, "bin/init.insmod.sh")
             if os.path.isfile(insmod_sh):
                 txt = open(insmod_sh).read()
-                hook = (
-                    "insmod /vendor/lib/ufs-sprd_qogirl6.ko 2>/dev/null || true\n"
-                    "if [ -z \"$bootmode\" ] && [ -f /vendor/lib/modules/modules.load ]; then\n"
-                    "\tmodprobe -s -a -d /vendor/lib/modules $(head -n 33 /vendor/lib/modules/modules.load)\n"
-                    "\tsetprop vendor.all.modules.ready 1\n"
-                    "\tmodprobe -s -a -d /vendor/lib/modules $(tail -n +34 /vendor/lib/modules/modules.load)\n"
-                    "\texit 0\n"
-                    "fi\n"
-                )
-                if "head -n 33" not in txt:
+                hook = "insmod /vendor/lib/ufs-sprd_qogirl6.ko 2>/dev/null || true\n"
+                if hook not in txt:
                     txt = txt.replace("if [ -f $cfg_file ]; then\n", hook + "if [ -f $cfg_file ]; then\n", 1)
-                    open(insmod_sh, "w").write(txt)
-                    os.chmod(insmod_sh, 0o755)
+                txt = txt.replace("modprobe -s -a -d", "modprobe -a -d")
+                open(insmod_sh, "w").write(txt)
+                os.chmod(insmod_sh, 0o755)
 
         for sub in ("bin", "bin/hw"):
             for fn in os.listdir(os.path.join(root, sub)):
@@ -151,11 +145,21 @@ def main():
                 if os.path.isfile(p) and not os.path.islink(p):
                     os.chmod(p, 0o755)
 
-        fc = os.path.join(root, "etc/selinux/vendor_file_contexts")
+        # Build merged file_contexts (platform /vendor base rules + vendor_file_contexts)
+        v_fc = os.path.join(root, "etc/selinux/vendor_file_contexts")
+        merged_fc = os.path.join(tmp, "merged_file_contexts")
+        with open(merged_fc, "w") as out_f:
+            if os.path.isfile(plat_fc):
+                for line in open(plat_fc):
+                    if re.match(r"^/(vendor|\(vendor\|system/vendor\))", line):
+                        out_f.write(line)
+            out_f.write("\n")
+            out_f.write(open(v_fc).read())
+
         if os.path.exists(out_img):
             os.unlink(out_img)
         subprocess.run(
-            ["mkfs.erofs", "-zlz4", "--all-root", "--mount-point=/vendor", f"--file-contexts={fc}", out_img, root],
+            ["mkfs.erofs", "-zlz4", "--all-root", "--mount-point=/vendor", f"--file-contexts={merged_fc}", out_img, root],
             check=True,
         )
         subprocess.run(["fsck.erofs", out_img], check=True)
