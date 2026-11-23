@@ -81,6 +81,13 @@ def main():
             ("lib64", "libprotobuf-cpp-full-3.9.1.so"),
             ("lib64", "libkeystore-wifi-hidl.so"),
             ("lib64", "libkeystore-engine-wifi-hidl.so"),
+            ("lib64", "android.hardware.wifi@1.0.so"),
+            ("lib64", "android.hardware.wifi@1.1.so"),
+            ("lib64", "android.hardware.wifi@1.2.so"),
+            ("lib64", "android.hardware.wifi@1.3.so"),
+            ("lib64", "android.hardware.wifi@1.4.so"),
+            ("lib64", "android.hardware.wifi@1.5.so"),
+            ("lib64", "android.hardware.wifi@1.6.so"),
         ]
         for arch, fn in extra:
             src, dst = os.path.join(prop, arch, fn), os.path.join(root, arch, fn)
