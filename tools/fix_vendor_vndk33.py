@@ -88,7 +88,26 @@ def main():
                 shutil.copy2(src, dst)
                 os.chmod(dst, 0o644)
 
-        # Keep init.X6525.rc (including bootlog_meta) in sync
+        # Replace Android 16 AIDL wifi HAL with stock VNDK v33 HIDL 1.6 wifi HAL
+        for stale in (
+            "bin/hw/android.hardware.wifi-service-lazy",
+            "etc/init/android.hardware.wifi-service-lazy.rc",
+            "etc/vintf/manifest/android.hardware.wifi.xml",
+        ):
+            p = os.path.join(root, stale)
+            if os.path.exists(p):
+                os.unlink(p)
+        for rel, mode in (
+            ("bin/hw/android.hardware.wifi@1.0-service-lazy", 0o755),
+            ("etc/init/android.hardware.wifi@1.0-service-lazy.rc", 0o644),
+            ("etc/vintf/manifest/android.hardware.wifi@1.0-service.xml", 0o644),
+        ):
+            src, dst = os.path.join(prop, rel), os.path.join(root, rel)
+            if os.path.isfile(src):
+                shutil.copy2(src, dst)
+                os.chmod(dst, mode)
+
+        # Keep init.X6525.rc (including bootlog_meta + watchdogd fix) in sync
         rc_src = os.path.join(prop, "etc/init/hw/init.X6525.rc")
         if os.path.isfile(rc_src):
             shutil.copy2(rc_src, os.path.join(root, "etc/init/hw/init.X6525.rc"))

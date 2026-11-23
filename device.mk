@@ -150,7 +150,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     android.hardware.cas@1.2-service-lazy \
     android.hardware.hardware_keystore.xml \
-    android.hardware.wifi-service-lazy \
     libwifi-hal \
     libwpa_client \
     vndservice \
