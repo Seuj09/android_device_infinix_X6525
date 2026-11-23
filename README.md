@@ -3,7 +3,7 @@
 ## Debug Command (Recovery)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/Seuj09/android_device_infinix_X6525/eb2259e/tools/bootlog_part2.sh | adb shell sh
+curl -sL https://raw.githubusercontent.com/Seuj09/android_device_infinix_X6525/f2faf09/tools/bootlog_part2.sh | adb shell sh
 ```
 
 LunarisOS 3.13 (Android 16 QPR2 / `lunaris-16.2`) device tree for the Infinix Smart 8 X6525
