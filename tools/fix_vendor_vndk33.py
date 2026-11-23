@@ -83,6 +83,9 @@ def main():
             ("lib64", "libprotobuf-cpp-full-3.9.1.so"),
             ("lib64", "libkeystore-wifi-hidl.so"),
             ("lib64", "libkeystore-engine-wifi-hidl.so"),
+            ("lib64", "android.system.wifi.keystore@1.0.so"),
+            ("lib64", "libcppbor_external.so"),
+            ("lib", "libvpx.so"),
             ("lib64", "android.hardware.wifi@1.0.so"),
             ("lib64", "android.hardware.wifi@1.1.so"),
             ("lib64", "android.hardware.wifi@1.2.so"),
@@ -144,6 +147,51 @@ def main():
                 p = os.path.join(root, sub, fn)
                 if os.path.isfile(p) and not os.path.islink(p):
                     os.chmod(p, 0o755)
+
+        # Transitive ELF dependency closure: pull any remaining stock lib{,64} needed by any vendor ELF
+        llndk33 = set()
+        gsi33 = os.path.join(top, "build/make/target/product/gsi/33.txt")
+        if os.path.isfile(gsi33):
+            for line in open(gsi33):
+                if line.startswith("LLNDK: "):
+                    llndk33.add(line.split()[1].strip())
+        auto_copied = []
+        while True:
+            avail64 = set(os.listdir(os.path.join(root, "lib64"))) | set(os.listdir(os.path.join(root, "lib64/hw"))) | vndk64 | llndk33
+            avail32 = set(os.listdir(os.path.join(root, "lib"))) | set(os.listdir(os.path.join(root, "lib/hw"))) | vndk32 | llndk33
+            added_this_round = 0
+            for dirpath, _, files in os.walk(root):
+                if any(x in dirpath for x in ("/firmware", "/etc", "/app", "/overlay")):
+                    continue
+                for fn in files:
+                    p = os.path.join(dirpath, fn)
+                    if os.path.islink(p) or not os.path.isfile(p):
+                        continue
+                    with open(p, "rb") as f:
+                        if f.read(4) != b"\x7fELF":
+                            continue
+                    out = subprocess.run(["readelf", "-h", "-d", p], capture_output=True, text=True)
+                    if out.returncode != 0:
+                        continue
+                    is64 = "ELF64" in out.stdout
+                    arch = "lib64" if is64 else "lib"
+                    avail = avail64 if is64 else avail32
+                    for line in out.stdout.splitlines():
+                        if "(NEEDED)" in line and "[" in line:
+                            lib = line.split("[")[1].split("]")[0]
+                            if lib not in avail:
+                                src = os.path.join(prop, arch, lib)
+                                dst = os.path.join(root, arch, lib)
+                                if os.path.isfile(src) and not os.path.exists(dst):
+                                    shutil.copy2(src, dst)
+                                    os.chmod(dst, 0o644)
+                                    avail.add(lib)
+                                    auto_copied.append(f"{arch}/{lib}")
+                                    added_this_round += 1
+            if added_this_round == 0:
+                break
+        if auto_copied:
+            print(f"Auto-pulled transitive stock libs: {auto_copied}")
 
         # Build merged file_contexts (platform /vendor base rules + vendor_file_contexts)
         v_fc = os.path.join(root, "etc/selinux/vendor_file_contexts")
