@@ -121,10 +121,10 @@ def main():
             shutil.copy2(rc_src, os.path.join(root, "etc/init/hw/init.X6525.rc"))
             os.chmod(os.path.join(root, "etc/init/hw/init.X6525.rc"), 0o644)
 
-        # Bundle ufs-sprd_qogirl6.ko fallback and unblock early-boot as soon as
-        # display/GPU modules (sprd-drm + mali_kbase) are loaded so the remaining
-        # 100+ modules in vendor_dlkm load concurrently with bootanim instead of
-        # stalling on early-boot for 75+ seconds.
+        # Bundle ufs-sprd_qogirl6.ko fallback and unblock early-boot right after
+        # lines 1..33 of modules.load (in exact stock order: power domains, ION,
+        # IOMMU, tran_hwinfo, sprd-drm, sprd-gsp, apsys-dvfs, mali_kbase) so
+        # bootanim starts immediately while lines 34..end finish in stock order.
         if os.path.isfile(ufs_ko):
             shutil.copy2(ufs_ko, os.path.join(root, "lib/ufs-sprd_qogirl6.ko"))
             os.chmod(os.path.join(root, "lib/ufs-sprd_qogirl6.ko"), 0o644)
@@ -133,10 +133,14 @@ def main():
                 txt = open(insmod_sh).read()
                 hook = (
                     "insmod /vendor/lib/ufs-sprd_qogirl6.ko 2>/dev/null || true\n"
-                    "modprobe -s -a -d /vendor/lib/modules sprd-drm.ko mali_kbase.ko\n"
-                    "setprop vendor.all.modules.ready 1\n"
+                    "if [ -z \"$bootmode\" ] && [ -f /vendor/lib/modules/modules.load ]; then\n"
+                    "\tmodprobe -s -a -d /vendor/lib/modules $(head -n 33 /vendor/lib/modules/modules.load)\n"
+                    "\tsetprop vendor.all.modules.ready 1\n"
+                    "\tmodprobe -s -a -d /vendor/lib/modules $(tail -n +34 /vendor/lib/modules/modules.load)\n"
+                    "\texit 0\n"
+                    "fi\n"
                 )
-                if "sprd-drm.ko mali_kbase.ko" not in txt:
+                if "head -n 33" not in txt:
                     txt = txt.replace("if [ -f $cfg_file ]; then\n", hook + "if [ -f $cfg_file ]; then\n", 1)
                     open(insmod_sh, "w").write(txt)
                     os.chmod(insmod_sh, 0o755)
