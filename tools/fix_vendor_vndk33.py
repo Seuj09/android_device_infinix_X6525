@@ -99,6 +99,7 @@ def main():
         for stale in (
             "bin/hw/android.hardware.wifi-service-lazy",
             "etc/init/android.hardware.wifi-service-lazy.rc",
+            "etc/vintf/manifest/android.hardware.wifi-service.xml",
             "etc/vintf/manifest/android.hardware.wifi.xml",
         ):
             p = os.path.join(root, stale)
