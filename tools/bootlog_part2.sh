@@ -1,11 +1,13 @@
 #!/system/bin/sh
-M=/tmp/m; V=/tmp/v; VD=/tmp/vd; mkdir -p $M $V $VD
+# Pulls Settings/SystemUI/Launcher crashes, ANRs, and 5GHz Wi-Fi errors from /metadata/boot_logcat.txt
+M=/tmp/m; mkdir -p $M
 mount -t f2fs /dev/block/by-name/metadata $M 2>/dev/null
-mount -t erofs -o ro /dev/block/mapper/vendor_b $V 2>/dev/null
-mount -t erofs -o ro /dev/block/mapper/vendor_dlkm_b $VD 2>/dev/null
-echo "## mapper"; ls -la /dev/block/mapper/vendor* 2>&1
-echo "## vendor/lib/modules"; ls -la $V/lib/modules 2>&1
-echo "## vendor_dlkm/lib/modules"; ls -la $VD/lib/modules/sprd-drm.ko $VD/lib/modules/mali_kbase.ko $VD/lib/modules/init.insmod.cfg 2>&1
-echo "## modprobe/insmod in logcat"
-grep -iE "modprobe|insmod|sprd-drm|sprd_drm|mali" $M/boot_logcat.txt 2>/dev/null | head -n 30
-umount $M $V $VD 2>/dev/null
+L=$M/boot_logcat.txt
+strip() { sed -E 's/^[0-9-]+ [0-9:.]+ +[0-9]+ +[0-9]+ //'; }
+
+echo "## TICK"; cat $M/boot_tick.txt 2>/dev/null
+echo "## FATAL EXCEPTIONS / CRASHES (Settings / SystemUI / Launcher / SystemServer)"
+grep -E "FATAL EXCEPTION|AndroidRuntime:|Process: com\.android\.(settings|systemui|launcher)|Caused by:|F DEBUG +: (Cmdline:|Abort message|signal )" $L | strip | tail -n 55
+echo "## WIFI / 5GHZ ERRORS"
+grep -iE "WifiNl80211|WifiHal|wpa_supplicant|supplicant|5g|band|country|regdom|sprdwl|unisoc.*wifi" $L | grep -E " (W|E|F) " | strip | sort -u | tail -n 30
+umount $M 2>/dev/null
