@@ -8,12 +8,26 @@
     <string-array name="config_biometric_sensors" translatable="false">
         <item>"0:2:15"</item>
     </string-array>
+    <bool name="config_is_powerbutton_fps">true</bool>
 
     <!-- Default Notification Listener access packages -->
     <string name="config_defaultListenerAccessPackages" translatable="false">com.android.launcher3:com.google.android.projection.gearhead</string>
 
-    <!-- Disable AOD wallpaper, burn-in protection, and pickup doze on LCD panel -->
-    <bool name="config_dozeSupportsAodWallpaper">false</bool>
+    <!-- Always-On Display (AOD) / Ambient Display (IPS LCD-tuned) -->
+    <string name="config_dozeComponent" translatable="false">com.android.systemui/com.android.systemui.doze.DozeService</string>
+    <bool name="config_dozeAlwaysOnDisplayAvailable">true</bool>
+    <bool name="config_dozeAlwaysOnEnabled">false</bool>
+    <bool name="config_dozeAfterScreenOffByDefault">false</bool>
+    <bool name="config_dozeSupportsAodWallpaper">true</bool>
+    <bool name="config_dozePulsePickup">true</bool>
+    <bool name="config_powerDecoupleInteractiveModeFromDisplay">true</bool>
+    <bool name="config_powerDecoupleAutoSuspendModeFromDisplay">false</bool>
+    <integer name="config_screenBrightnessDoze">17</integer>
+    <item name="config_screenBrightnessDozeFloat" format="float" type="dimen">0.067</item>
+    <!-- IPS LCD does not need burn-in shift wakeups -->
     <bool name="config_enableBurnInProtection">false</bool>
-    <bool name="config_dozePulsePickup">false</bool>
+
+    <!-- Smooth Display (60Hz / 90Hz dynamic refresh rate) -->
+    <integer name="config_defaultPeakRefreshRate">90</integer>
+    <integer name="config_defaultRefreshRate">0</integer>
 </resources>

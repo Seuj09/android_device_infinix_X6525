@@ -21,8 +21,17 @@ $(call inherit-product, device/infinix/X6525/device.mk)
 # Lunaris-AOSP configuration
 WITH_GMS ?= true
 WITH_PIXEL_LAUNCHER := false
+WITH_BCR := true
 TARGET_BOOT_ANIMATION_RES := 720
-TARGET_FACE_UNLOCK_SUPPORTED := false
+TARGET_FACE_UNLOCK_SUPPORTED := true
+TARGET_ENABLE_BLUR := true
+TARGET_SUPPORTED_REFRESH_RATES := 60,90
+USE_REALITY_ENGINE := true
+USE_ADVANCED_DISPLAY_COLOR := true
+SURFACE_FLINGER_BOOST := true
+TARGET_OPTIMIZED_DEXOPT := true
+# TARGET_BUILD_DEVICE_AS_WEBCAM requires CONFIG_USB_CONFIGFS_F_UVC=y in kernel
+TARGET_BUILD_DEVICE_AS_WEBCAM := false
 
 # Inherit some common Lineage/Lunaris stuff.
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
