@@ -1,5 +1,9 @@
 #!/system/bin/sh
-echo "## KERNEL WARNING / OOPS / CALL TRACE IN DMESG"
-dmesg 2>/dev/null | grep -n -B2 -A22 -E "WARNING:|BUG:|Oops|Internal error|Unable to handle|Call trace:" | head -n 75
-echo "## WLAN0 / WIFI / DHCP IN LOGCAT"
-logcat -b all -d 2>/dev/null | grep -iE "wlan0|IpClient\.wlan0|DhcpClient|WifiClientModeImpl|WifiVendorHal|SupplicantSta" | grep -v "usb0" | tail -n 35
+echo "## BOOT REASON & CMDLINE"
+getprop | grep -iE "bootreason|bootmode|reboot|reset"
+cat /proc/cmdline
+echo "## WDT SYSFS / PARAMS"
+ls -la /sys/module/sprd_wdt_fiq/parameters /sys/module/sprd_pmic_wdt/parameters /dev/watchdog* 2>&1
+for f in /sys/module/sprd_wdt_fiq/parameters/* /sys/module/sprd_pmic_wdt/parameters/*; do [ -r "$f" ] && echo "$f = $(cat $f)"; done
+echo "## DMESG WDT / SUSPEND / SYSDUMP / RESET"
+dmesg 2>/dev/null | grep -iE "bootreason|wdt|watchdog|sysdump|suspend|PM:|reset reason|panic|oops" | head -n 45
