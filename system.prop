@@ -7,9 +7,8 @@
 # `tools/collect-props.py <dump>` output once you have extracted your own dump;
 # anything that differs is a device-specific value you should keep.
 
-# ART / Dalvik tuning
-dalvik.vm.heapgrowthlimit=128m
-dalvik.vm.heapsize=256m
+# ART / Dalvik tuning: inherited from frameworks/native/build/phone-xhdpi-4096-dalvik-heap.mk
+# (replaces stock Android 13 Go 128m/256m limits that cause frequent GC pauses on Android 16)
 
 # Stock is Android 13 Go edition and ships ro.config.low_ram=true, but this
 # tree builds full LineageOS (not Go), where low_ram changes ActivityManager and

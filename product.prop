@@ -20,5 +20,11 @@ persist.sys.camera_multikill_support=1
 # Storage
 persist.sys.fuse.passthrough.enable=true
 
-# Display
+# Display & Backlight
+# Stock Unisoc/Transsion ILights (combined@1.0-service) expects alpha=0 + 12-bit 0..4095
+# for TD4160/FT8057s panels (sprd,max-level=4095). Standard AOSP alpha=0xFF caps at 255.
+ro.lights.sprd_12bit_backlight=true
 ro.surface_flinger.set_idle_timer_ms=1200
+ro.surface_flinger.set_touch_timer_ms=200
+ro.surface_flinger.enable_frame_rate_override=true
+debug.sf.enable_adpf_cpu_hint=true

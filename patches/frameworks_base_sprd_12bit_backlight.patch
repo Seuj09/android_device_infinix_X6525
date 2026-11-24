@@ -1,0 +1,41 @@
+diff --git a/services/core/java/com/android/server/lights/LightsService.java b/services/core/java/com/android/server/lights/LightsService.java
+index 7b498e85c628..09b57099f4e9 100644
+--- a/services/core/java/com/android/server/lights/LightsService.java
++++ b/services/core/java/com/android/server/lights/LightsService.java
+@@ -30,10 +30,13 @@ import android.os.Handler;
+ import android.os.IBinder;
+ import android.os.Looper;
+ import android.os.PermissionEnforcer;
++import android.os.PowerManager;
+ import android.os.RemoteException;
+ import android.os.ServiceManager;
++import android.os.SystemProperties;
+ import android.os.Trace;
+ import android.provider.Settings;
++import android.util.MathUtils;
+ import android.util.Slog;
+ import android.util.SparseArray;
+ 
+@@ -312,6 +315,22 @@ public class LightsService extends SystemService {
+                             + ": brightness=" + brightness);
+                     return;
+                 }
++                if (mHwLight.type == LightsManager.LIGHT_ID_BACKLIGHT
++                        && SystemProperties.getBoolean("ro.lights.sprd_12bit_backlight", false)) {
++                    int b12;
++                    if (BrightnessSynchronizer.floatEquals(
++                                brightness, PowerManager.BRIGHTNESS_OFF_FLOAT)
++                            || brightness < PowerManager.BRIGHTNESS_MIN) {
++                        b12 = 0;
++                    } else {
++                        b12 = Math.round(MathUtils.constrainedMap(
++                                16.0f, 4095.0f,
++                                PowerManager.BRIGHTNESS_MIN, PowerManager.BRIGHTNESS_MAX,
++                                brightness));
++                    }
++                    setLightLocked(b12 & 0x00000fff, LIGHT_FLASH_NONE, 0, 0, brightnessMode);
++                    return;
++                }
+                 int brightnessInt = BrightnessSynchronizer.brightnessFloatToInt(brightness);
+                 int color = brightnessInt & 0x000000ff;
+                 color = 0xff000000 | (color << 16) | (color << 8) | color;

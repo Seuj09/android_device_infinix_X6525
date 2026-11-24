@@ -8,18 +8,19 @@ DEVICE_PATH := device/infinix/X6525
 # ----------------------------------------------------------------------------
 # Architecture
 # ----------------------------------------------------------------------------
+# Unisoc T606 (ums9230): 2x Cortex-A75 + 6x Cortex-A55 (ARMv8.2-A + LSE + FP16 + DotProd)
 TARGET_ARCH := arm64
-TARGET_ARCH_VARIANT := armv8-a
+TARGET_ARCH_VARIANT := armv8-2a-dotprod
 TARGET_CPU_ABI := arm64-v8a
 TARGET_CPU_ABI2 :=
-TARGET_CPU_VARIANT := generic
+TARGET_CPU_VARIANT := cortex-a55
 TARGET_CPU_VARIANT_RUNTIME := cortex-a75
 
 TARGET_2ND_ARCH := arm
-TARGET_2ND_ARCH_VARIANT := armv7-a-neon
+TARGET_2ND_ARCH_VARIANT := armv8-2a
 TARGET_2ND_CPU_ABI := armeabi-v7a
 TARGET_2ND_CPU_ABI2 := armeabi
-TARGET_2ND_CPU_VARIANT := generic
+TARGET_2ND_CPU_VARIANT := cortex-a55
 TARGET_2ND_CPU_VARIANT_RUNTIME := cortex-a55
 
 # ----------------------------------------------------------------------------
@@ -68,7 +69,7 @@ BOARD_KERNEL_OFFSET := 0x00008000
 BOARD_RAMDISK_OFFSET := 0x05400000
 BOARD_KERNEL_TAGS_OFFSET := 0x00000100
 BOARD_DTB_OFFSET := 0x01f00000
-BOARD_KERNEL_CMDLINE := console=ttyS1,115200n8 androidboot.selinux=permissive enforcing=0
+BOARD_KERNEL_CMDLINE := console=ttyS1,115200n8 loglevel=1 quiet initcall_debug=0 androidboot.selinux=permissive enforcing=0
 BOARD_KERNEL_IMAGE_NAME := Image
 BOARD_RAMDISK_USE_LZ4 := true
 BOARD_MKBOOTIMG_ARGS += \

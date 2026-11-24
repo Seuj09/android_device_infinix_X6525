@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: The LineageOS Project
+# SPDX-License-Identifier: Apache-2.0
+#
+# Runtime performance & memory optimizations for Infinix Smart 8 (X6525 / ums9230).
+
+on post-fs-data
+    # Override stock Android 13 Go tiny Dalvik heap set by vendor init.md.rc on early-init
+    # so full Android 16 apps and SystemUI don't suffer constant GC pauses / OOM reloads.
+    setprop dalvik.vm.heapstartsize 8m
+    setprop dalvik.vm.heapgrowthlimit 192m
+    setprop dalvik.vm.heapsize 512m
+    setprop dalvik.vm.heaptargetutilization 0.6
+    setprop dalvik.vm.heapminfree 8m
+    setprop dalvik.vm.heapmaxfree 16m
+    setprop dalvik.vm.madvise-random false
+
+on property:sys.boot_completed=1
+    # Single-page ZRAM swap-in (no wasted read-ahead on compressed RAM swap)
+    write /proc/sys/vm/page-cluster 0
+    write /proc/sys/vm/swappiness 100
+
+    # Unlock Helix kernel's built-in MGLRU + kcompressd (no-op if not present)
+    write /sys/kernel/mm/lru_gen/enabled y
+    write /sys/kernel/mm/lru_gen/min_ttl_ms 1000
+    write /proc/sys/vm/kcompressd 64
