@@ -15,11 +15,15 @@ on post-fs-data
     setprop dalvik.vm.madvise-random false
 
 on property:sys.boot_completed=1
-    # Single-page ZRAM swap-in (no wasted read-ahead on compressed RAM swap)
+    # Single-page ZRAM swap-in and balanced swappiness (overrides init.ram.gms.rc's
+    # swappiness=150 which over-filled ZRAM while 1.5GB of file cache sat unused,
+    # tripping lmkd's swap_free_low_percentage kill cliff).
     write /proc/sys/vm/page-cluster 0
-    write /proc/sys/vm/swappiness 100
+    write /proc/sys/vm/swappiness 60
+    write /proc/sys/vm/direct_swappiness 60
 
-    # Unlock Helix kernel's built-in MGLRU + kcompressd (no-op if not present)
+    # Enable Helix kernel's MGLRU; keep kcompressd off (0) to avoid unlocked-page
+    # writeback races under heavy Chrome/app memory pressure.
     write /sys/kernel/mm/lru_gen/enabled y
     write /sys/kernel/mm/lru_gen/min_ttl_ms 1000
-    write /proc/sys/vm/kcompressd 64
+    write /proc/sys/vm/kcompressd 0
