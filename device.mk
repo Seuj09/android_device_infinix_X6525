@@ -94,6 +94,7 @@ PRODUCT_PACKAGES += \
 # TARGET_VENDOR_RAMDISK_OUT: product makefiles are parsed before envsetup.mk
 # defines the _OUT variables, so _OUT would expand to an empty string here.
 PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/etc/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.xml \
     $(LOCAL_PATH)/rootdir/etc/cgroups.json:$(TARGET_COPY_OUT_VENDOR)/etc/cgroups.json \
     $(LOCAL_PATH)/rootdir/etc/fstab.X6525:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/first_stage_ramdisk/fstab.X6525 \
     $(LOCAL_PATH)/rootdir/etc/fstab.X6525:$(TARGET_COPY_OUT_RECOVERY)/root/first_stage_ramdisk/fstab.X6525 \

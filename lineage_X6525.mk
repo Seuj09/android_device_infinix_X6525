@@ -30,8 +30,8 @@ USE_REALITY_ENGINE := true
 USE_ADVANCED_DISPLAY_COLOR := true
 SURFACE_FLINGER_BOOST := true
 TARGET_OPTIMIZED_DEXOPT := true
-# TARGET_BUILD_DEVICE_AS_WEBCAM requires CONFIG_USB_CONFIGFS_F_UVC=y in kernel
-TARGET_BUILD_DEVICE_AS_WEBCAM := false
+# Enabled: Helix kernel >= 7a2dd7657 builds CONFIG_USB_CONFIGFS_F_UVC=y
+TARGET_BUILD_DEVICE_AS_WEBCAM := true
 
 # Inherit some common Lineage/Lunaris stuff.
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
