@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: The LineageOS Project
+# SPDX-License-Identifier: Apache-2.0
+#
+# ZRAM swap table for Infinix Smart 8 (X6525 / 4 GB RAM).
+# Sized to 100% (~3.85 GB uncompressed, ~1.8 GB compressed with lz4kd) so full
+# Android 16 + GMS holds 3-5 heavy apps without tripping lmkd low-swap kills.
+/dev/block/zram0 none swap defaults zramsize=100%,zram_loopback_path=/data/per_boot/zram_swap,zram_backingdev_size=500M,zram_backing_dev_path=/dev/block/loop0

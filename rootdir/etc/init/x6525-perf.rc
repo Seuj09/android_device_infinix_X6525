@@ -15,15 +15,27 @@ on post-fs-data
     setprop dalvik.vm.madvise-random false
 
 on property:sys.boot_completed=1
-    # Single-page ZRAM swap-in and balanced swappiness (overrides init.ram.gms.rc's
-    # swappiness=150 which over-filled ZRAM while 1.5GB of file cache sat unused,
-    # tripping lmkd's swap_free_low_percentage kill cliff).
-    write /proc/sys/vm/page-cluster 0
-    write /proc/sys/vm/swappiness 60
-    write /proc/sys/vm/direct_swappiness 60
+    # Ensure schedutil is active on both clusters (overrides kernels defaulting to
+    # performance, which otherwise lock all 8 cores at 1612 MHz and drain battery).
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_governor schedutil
+    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/freq_margin 30
+    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/rate_limit_us 10000
+    write /sys/devices/system/cpu/cpufreq/policy6/scaling_governor schedutil
+    write /sys/devices/system/cpu/cpufreq/policy6/schedutil/freq_margin 30
+    write /sys/devices/system/cpu/cpufreq/policy6/schedutil/rate_limit_us 10000
 
-    # Enable Helix kernel's MGLRU; keep kcompressd off (0) to avoid unlocked-page
-    # writeback races under heavy Chrome/app memory pressure.
+    # Single-page ZRAM swap-in and balanced swappiness (overrides init.ram.gms.rc's
+    # swappiness=150 which over-filled ZRAM and kept kswapd0 spinning).
+    write /proc/sys/vm/page-cluster 0
+    write /proc/sys/vm/swappiness 80
+    write /proc/sys/vm/direct_swappiness 80
+    write /proc/sys/vm/watermark_scale_factor 20
+
+    # Enable Helix kernel's MGLRU (paired with ro.lmk.relaxed_available_memory=true);
+    # keep kcompressd off (0) to avoid unlocked-page writeback races under heavy pressure.
     write /sys/kernel/mm/lru_gen/enabled y
     write /sys/kernel/mm/lru_gen/min_ttl_ms 1000
     write /proc/sys/vm/kcompressd 0
+
+    # Prefer Google BBRv3 if compiled into kernel (no-op if unsupported).
+    write /proc/sys/net/ipv4/tcp_congestion_control bbr3

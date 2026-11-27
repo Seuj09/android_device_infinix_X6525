@@ -98,6 +98,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/etc/fstab.X6525:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/first_stage_ramdisk/fstab.X6525 \
     $(LOCAL_PATH)/rootdir/etc/fstab.X6525:$(TARGET_COPY_OUT_RECOVERY)/root/first_stage_ramdisk/fstab.X6525 \
     $(LOCAL_PATH)/rootdir/etc/fstab.X6525:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.X6525 \
+    $(LOCAL_PATH)/rootdir/etc/fstab.enableswap:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.enableswap \
     $(LOCAL_PATH)/rootdir/etc/init/a-x6525-face.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/a-x6525-face.rc \
     $(LOCAL_PATH)/rootdir/etc/init/x6525-perf.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/x6525-perf.rc \
     $(LOCAL_PATH)/rootdir/etc/init/x6525-usb.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/x6525-usb.rc \
