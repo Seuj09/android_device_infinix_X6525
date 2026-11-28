@@ -1,0 +1,290 @@
+From 85407558a7e3aad48ca6c881fc4e44982ffea7c1 Mon Sep 17 00:00:00 2001
+From: Jeus Dugay <duhayjeus09@gmail.com>
+Date: Sat, 28 Nov 2026 05:34:25 +0000
+Subject: [PATCH] services: add PulseCoreBridge and guard ProcessFreezerManager
+ behind sysprop
+
+- PulseCoreBridge: closed-loop ROM-to-PulseCore v0.8.0 profile sync
+  (ro.pulsecore.bridge=true, opt-out persist.sys.pulsecore.auto_profile=false).
+  Coordinates Battery Saver -> battery, GameSpace (ax_gaming_mode_active) ->
+  gaming, unplugged screen-off -> battery (preserving full charging when
+  plugged in), and interactive -> persist.sys.pulsecore.profile (default smooth).
+- ProcessFreezerManager: gate behind persist.sys.process_freezer_manager
+  (default true) and null-check init() in ActivityManagerService so Linux 5.4
+  devices using PulseCore LaunchPulse/BinderPulse can avoid binder-freeze
+  callback storms.
+---
+ .../server/am/ActivityManagerService.java     |   5 +-
+ .../server/am/ProcessFreezerManager.java      |   4 +-
+ .../server/power/PowerManagerService.java     |   1 +
+ .../android/server/power/PulseCoreBridge.java | 208 ++++++++++++++++++
+ 4 files changed, 216 insertions(+), 2 deletions(-)
+ create mode 100644 services/core/java/com/android/server/power/PulseCoreBridge.java
+
+diff --git a/services/core/java/com/android/server/am/ActivityManagerService.java b/services/core/java/com/android/server/am/ActivityManagerService.java
+index 39636e28d8c0..8627aacc789c 100644
+--- a/services/core/java/com/android/server/am/ActivityManagerService.java
++++ b/services/core/java/com/android/server/am/ActivityManagerService.java
+@@ -5446,7 +5446,10 @@ public class ActivityManagerService extends IActivityManager.Stub
+         showMteOverrideNotificationIfActive();
+ 
+         t.traceEnd();
+-        ProcessFreezerManager.getInstance().init(mFreezer);
++        ProcessFreezerManager freezer = ProcessFreezerManager.getInstance();
++        if (freezer != null) {
++            freezer.init(mFreezer);
++        }
+     }
+ 
+     private void showConsoleNotificationIfActive() {
+diff --git a/services/core/java/com/android/server/am/ProcessFreezerManager.java b/services/core/java/com/android/server/am/ProcessFreezerManager.java
+index edaca083f0a2..e3a0039fbf37 100644
+--- a/services/core/java/com/android/server/am/ProcessFreezerManager.java
++++ b/services/core/java/com/android/server/am/ProcessFreezerManager.java
+@@ -17,6 +17,7 @@ import android.os.Trace;
+ import android.os.IBinder;
+ import android.os.Process;
+ import android.os.Handler;
++import android.os.SystemProperties;
+ import android.util.Slog;
+ import android.util.ArrayMap;
+ import android.util.SparseArray;
+@@ -58,7 +59,8 @@ public class ProcessFreezerManager {
+     private static volatile int mCpuUsageThreshold = DEFAULT_CPU_USAGE_THRESHOLD;
+     private static volatile long mDelayUnfreezeTimeout = DEFAULT_DELAY_UNFREEZER_TIMEOUT;
+     private static volatile boolean mUseDebug = false;
+-    private static volatile boolean mUseFreezerManager = true;
++    private static volatile boolean mUseFreezerManager =
++            SystemProperties.getBoolean("persist.sys.process_freezer_manager", true);
+ 
+     public static ProcessFreezerManager getInstance() {
+         if (!mUseFreezerManager) {
+diff --git a/services/core/java/com/android/server/power/PowerManagerService.java b/services/core/java/com/android/server/power/PowerManagerService.java
+index a76aeb65e1d4..14a3809f485e 100644
+--- a/services/core/java/com/android/server/power/PowerManagerService.java
++++ b/services/core/java/com/android/server/power/PowerManagerService.java
+@@ -1459,6 +1459,7 @@ public final class PowerManagerService extends SystemService
+                 mContext.getSystemService(DeviceStateManager.class).registerCallback(
+                         new HandlerExecutor(mHandler), new DeviceStateListener());
+             }
++            PulseCoreBridge.start(mContext);
+         }
+     }
+ 
+diff --git a/services/core/java/com/android/server/power/PulseCoreBridge.java b/services/core/java/com/android/server/power/PulseCoreBridge.java
+new file mode 100644
+index 000000000000..79a4700e2621
+--- /dev/null
++++ b/services/core/java/com/android/server/power/PulseCoreBridge.java
+@@ -0,0 +1,208 @@
++/*
++ * Copyright (C) 2026 The Lunaris-AOSP Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.server.power;
++
++import android.content.BroadcastReceiver;
++import android.content.ContentResolver;
++import android.content.Context;
++import android.content.Intent;
++import android.content.IntentFilter;
++import android.database.ContentObserver;
++import android.os.BatteryManager;
++import android.os.Handler;
++import android.os.PowerManager;
++import android.os.SystemProperties;
++import android.os.UserHandle;
++import android.provider.Settings;
++import android.util.Slog;
++
++import com.android.internal.os.BackgroundThread;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.nio.charset.StandardCharsets;
++
++/**
++ * Closed-loop ROM-to-PulseCore kernel profile bridge.
++ *
++ * Automatically coordinates Android Battery Saver, GameSpace sessions, and
++ * screen-off unplugged standby with /sys/kernel/pulsecore/profile while
++ * respecting the user's preferred base profile (persist.sys.pulsecore.profile)
++ * and runtime opt-out (persist.sys.pulsecore.auto_profile=false).
++ */
++final class PulseCoreBridge {
++    private static final String TAG = "PulseCoreBridge";
++    private static final String PROFILE_NODE = "/sys/kernel/pulsecore/profile";
++    private static final String PROP_BRIDGE = "ro.pulsecore.bridge";
++    private static final String PROP_AUTO = "persist.sys.pulsecore.auto_profile";
++    private static final String PROP_BASE_PROFILE = "persist.sys.pulsecore.profile";
++    private static final String SETTING_GAMING_ACTIVE = "ax_gaming_mode_active";
++    private static final String DEFAULT_BASE_PROFILE = "smooth";
++
++    private static PulseCoreBridge sInstance;
++
++    private final Context mContext;
++    private final Handler mHandler;
++    private final PowerManager mPowerManager;
++
++    private boolean mScreenOn = true;
++    private boolean mPluggedIn = false;
++    private boolean mPowerSave = false;
++    private boolean mGamingActive = false;
++    private String mLastApplied = null;
++
++    static void start(Context context) {
++        if (!SystemProperties.getBoolean(PROP_BRIDGE, false)) {
++            return;
++        }
++        if (!new File(PROFILE_NODE).exists()) {
++            Slog.i(TAG, "PulseCore sysfs not present; bridge inactive");
++            return;
++        }
++        synchronized (PulseCoreBridge.class) {
++            if (sInstance == null) {
++                sInstance = new PulseCoreBridge(context);
++                sInstance.init();
++            }
++        }
++    }
++
++    private PulseCoreBridge(Context context) {
++        mContext = context;
++        mHandler = BackgroundThread.getHandler();
++        mPowerManager = context.getSystemService(PowerManager.class);
++    }
++
++    private void init() {
++        mHandler.post(() -> {
++            if (mPowerManager != null) {
++                mScreenOn = mPowerManager.isInteractive();
++                mPowerSave = mPowerManager.isPowerSaveMode();
++            }
++            updateGamingState();
++
++            final IntentFilter filter = new IntentFilter();
++            filter.addAction(Intent.ACTION_SCREEN_ON);
++            filter.addAction(Intent.ACTION_SCREEN_OFF);
++            filter.addAction(Intent.ACTION_BATTERY_CHANGED);
++            filter.addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED);
++
++            final Intent sticky = mContext.registerReceiver(new BroadcastReceiver() {
++                @Override
++                public void onReceive(Context ctx, Intent intent) {
++                    final String action = intent.getAction();
++                    if (action == null) return;
++                    switch (action) {
++                        case Intent.ACTION_SCREEN_ON:
++                            mScreenOn = true;
++                            break;
++                        case Intent.ACTION_SCREEN_OFF:
++                            mScreenOn = false;
++                            break;
++                        case Intent.ACTION_BATTERY_CHANGED:
++                            mPluggedIn = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0;
++                            break;
++                        case PowerManager.ACTION_POWER_SAVE_MODE_CHANGED:
++                            if (mPowerManager != null) {
++                                mPowerSave = mPowerManager.isPowerSaveMode();
++                            }
++                            break;
++                        default:
++                            return;
++                    }
++                    syncProfileLocked();
++                }
++            }, filter, null, mHandler);
++
++            if (sticky != null) {
++                mPluggedIn = sticky.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0;
++            }
++
++            final ContentResolver resolver = mContext.getContentResolver();
++            resolver.registerContentObserver(
++                    Settings.Secure.getUriFor(SETTING_GAMING_ACTIVE),
++                    false,
++                    new ContentObserver(mHandler) {
++                        @Override
++                        public void onChange(boolean selfChange) {
++                            updateGamingState();
++                            syncProfileLocked();
++                        }
++                    },
++                    UserHandle.USER_ALL);
++
++            syncProfileLocked();
++            Slog.i(TAG, "Started (base=" + getBaseProfile() + ")");
++        });
++    }
++
++    private void updateGamingState() {
++        mGamingActive = Settings.Secure.getIntForUser(
++                mContext.getContentResolver(),
++                SETTING_GAMING_ACTIVE, 0, UserHandle.USER_CURRENT) == 1;
++    }
++
++    private static String getBaseProfile() {
++        final String p = SystemProperties.get(PROP_BASE_PROFILE, DEFAULT_BASE_PROFILE).trim();
++        switch (p) {
++            case "balanced":
++            case "battery":
++            case "smooth":
++            case "bypass":
++            case "gaming":
++                return p;
++            default:
++                return DEFAULT_BASE_PROFILE;
++        }
++    }
++
++    private void syncProfileLocked() {
++        if (!SystemProperties.getBoolean(PROP_AUTO, true)) {
++            return;
++        }
++        final String target;
++        if (mPowerSave) {
++            target = "battery";
++        } else if (mScreenOn && mGamingActive) {
++            target = "gaming";
++        } else if (!mScreenOn && !mPluggedIn) {
++            // Unplugged screen-off standby: drop to battery profile.
++            // While plugged in + screen off, keep base profile so 80% cap isn't forced.
++            target = "battery";
++        } else {
++            target = getBaseProfile();
++        }
++
++        if (target.equals(mLastApplied)) {
++            return;
++        }
++        if (writeProfile(target)) {
++            mLastApplied = target;
++        }
++    }
++
++    private static boolean writeProfile(String profile) {
++        try (FileOutputStream fos = new FileOutputStream(PROFILE_NODE)) {
++            fos.write((profile + "\n").getBytes(StandardCharsets.UTF_8));
++            return true;
++        } catch (IOException e) {
++            Slog.w(TAG, "Failed to set PulseCore profile '" + profile + "': " + e.getMessage());
++            return false;
++        }
++    }
++}
+-- 
+2.43.0
+

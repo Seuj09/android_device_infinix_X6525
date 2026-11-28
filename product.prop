@@ -28,3 +28,22 @@ ro.surface_flinger.set_idle_timer_ms=1200
 ro.surface_flinger.set_touch_timer_ms=200
 ro.surface_flinger.enable_frame_rate_override=true
 debug.sf.enable_adpf_cpu_hint=true
+
+# PulseCore v0.8.0 closed-loop ROM bridge (syncs Battery Saver / GameSpace / standby)
+ro.pulsecore.bridge=true
+persist.sys.pulsecore.auto_profile=true
+persist.sys.pulsecore.profile=smooth
+
+# Disable Qualcomm ProcessFreezerManager on Linux 5.4 to prevent binder-freeze
+# callback storms ("Can't deliver broadcast" kills); PulseCore LaunchPulse +
+# BinderPulse + CASS handle launch prioritization in kernel without freezing apps.
+persist.sys.process_freezer_manager=false
+
+# ART dex2oat big.LITTLE CPU pinning (keep 2x Cortex-A75 cores 6-7 free for UI)
+dalvik.vm.boot-dex2oat-threads=6
+dalvik.vm.dex2oat-threads=4
+dalvik.vm.dex2oat-cpu-set=0,1,2,3,4,5
+dalvik.vm.background-dex2oat-threads=2
+dalvik.vm.background-dex2oat-cpu-set=0,1,2,3
+dalvik.vm.restore-dex2oat-threads=4
+dalvik.vm.restore-dex2oat-cpu-set=0,1,2,3

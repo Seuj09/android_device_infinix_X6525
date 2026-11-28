@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: The LineageOS Project
 # SPDX-License-Identifier: Apache-2.0
 #
-# Runtime performance & memory optimizations for Infinix Smart 8 (X6525 / ums9230).
+# Runtime performance, storage, memory, and PulseCore v0.8.0 sync
+# for Infinix Smart 8 (X6525 / ums9230).
 
 on post-fs-data
     # Override stock Android 13 Go tiny Dalvik heap set by vendor init.md.rc on early-init
@@ -14,9 +15,33 @@ on post-fs-data
     setprop dalvik.vm.heapmaxfree 16m
     setprop dalvik.vm.madvise-random false
 
+on boot
+    # Grant system_server access to PulseCore v0.8.0 profile/thermflow controls.
+    chown system system /sys/kernel/pulsecore/profile
+    chown system system /sys/kernel/pulsecore/enabled
+    chown system system /sys/kernel/pulsecore/thermflow/bypass
+    chown system system /sys/kernel/pulsecore/thermflow/charge_cap_enabled
+    chmod 0664 /sys/kernel/pulsecore/profile
+    chmod 0664 /sys/kernel/pulsecore/enabled
+    chmod 0664 /sys/kernel/pulsecore/thermflow/bypass
+    chmod 0664 /sys/kernel/pulsecore/thermflow/charge_cap_enabled
+
+on property:persist.sys.pulsecore.profile=*
+    write /sys/kernel/pulsecore/profile ${persist.sys.pulsecore.profile}
+
 on property:sys.boot_completed=1
-    # Ensure schedutil is active on both clusters (overrides kernels defaulting to
-    # performance, which otherwise lock all 8 cores at 1612 MHz and drain battery).
+    # Re-ensure PulseCore permissions after late_initcall completes and apply base profile.
+    chown system system /sys/kernel/pulsecore/profile
+    chown system system /sys/kernel/pulsecore/enabled
+    chown system system /sys/kernel/pulsecore/thermflow/bypass
+    chown system system /sys/kernel/pulsecore/thermflow/charge_cap_enabled
+    chmod 0664 /sys/kernel/pulsecore/profile
+    chmod 0664 /sys/kernel/pulsecore/enabled
+    chmod 0664 /sys/kernel/pulsecore/thermflow/bypass
+    chmod 0664 /sys/kernel/pulsecore/thermflow/charge_cap_enabled
+    write /sys/kernel/pulsecore/profile ${persist.sys.pulsecore.profile:-smooth}
+
+    # Ensure schedutil is active on both clusters with stock Unisoc tuning.
     write /sys/devices/system/cpu/cpufreq/policy0/scaling_governor schedutil
     write /sys/devices/system/cpu/cpufreq/policy0/schedutil/freq_margin 30
     write /sys/devices/system/cpu/cpufreq/policy0/schedutil/rate_limit_us 10000
@@ -24,18 +49,27 @@ on property:sys.boot_completed=1
     write /sys/devices/system/cpu/cpufreq/policy6/schedutil/freq_margin 30
     write /sys/devices/system/cpu/cpufreq/policy6/schedutil/rate_limit_us 10000
 
-    # Single-page ZRAM swap-in and balanced swappiness (overrides init.ram.gms.rc's
-    # swappiness=150 which over-filled ZRAM and kept kswapd0 spinning).
+    # VM tuning synced 1:1 with PulseCore v0.8.0 (MemPulse 4GB tier, SwapFlow,
+    # WriteFlow, SlabShield) and ~3.85 GB lz4kd ZRAM. Leave MGLRU min_ttl_ms to
+    # PulseCore MemPulse so per-profile & touch TTL boosts are never overwritten.
     write /proc/sys/vm/page-cluster 0
-    write /proc/sys/vm/swappiness 80
-    write /proc/sys/vm/direct_swappiness 80
+    write /proc/sys/vm/swappiness 130
+    write /proc/sys/vm/direct_swappiness 100
+    write /proc/sys/vm/vfs_cache_pressure 60
+    write /proc/sys/vm/dirty_ratio 20
+    write /proc/sys/vm/dirty_background_ratio 5
     write /proc/sys/vm/watermark_scale_factor 20
-
-    # Enable Helix kernel's MGLRU (paired with ro.lmk.relaxed_available_memory=true);
-    # keep kcompressd off (0) to avoid unlocked-page writeback races under heavy pressure.
     write /sys/kernel/mm/lru_gen/enabled y
-    write /sys/kernel/mm/lru_gen/min_ttl_ms 1000
     write /proc/sys/vm/kcompressd 0
 
-    # Prefer Google BBRv3 if compiled into kernel (no-op if unsupported).
+    # eMMC + ADIOS I/O queue tuning (aligned with 256K readahead & IOFlow).
+    write /sys/block/mmcblk0/queue/read_ahead_kb 256
+    write /sys/block/mmcblk0/queue/nr_requests 128
+    write /sys/block/mmcblk0/queue/add_random 0
+    write /sys/block/mmcblk0/queue/rq_affinity 2
+    write /sys/block/mmcblk0/queue/iostats 0
+
+    # Network stack: Google BBRv3 + ECN + TCP Fast Open.
     write /proc/sys/net/ipv4/tcp_congestion_control bbr3
+    write /proc/sys/net/ipv4/tcp_ecn 1
+    write /proc/sys/net/ipv4/tcp_fastopen 3
